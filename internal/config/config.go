@@ -8,14 +8,16 @@ import (
 )
 
 type Config struct {
-	Env        string `yaml:"env" env-default:"local"`
-	HTTPServer `yaml:"http_server"`
+	Env         string `yaml:"env" env-default:"local"`
+	StoragePath string `yaml:"storage_path" env-default:"./storage/storage.db"`
+	HTTPServer  `yaml:"http_server"`
 }
 
 type HTTPServer struct {
 	Address     string        `yaml:"address" env-default:"0.0.0.0"`
-	Timeout     time.Duration `yaml:"timeout" env-default:"5"`
+	Timeout     time.Duration `yaml:"timeout" env-default:"5s"`
 	IdleTimeout time.Duration `yaml:"idle_timeout" env-default:"20s"`
+	GracePeriod time.Duration `yaml:"grace_period" env-default:"10s"`
 }
 
 func MustLoad() *Config {

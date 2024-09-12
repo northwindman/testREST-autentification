@@ -1,14 +1,10 @@
 package models
 
 type User struct {
-	ID       int64
+	UID      int64
+	IP       string
 	Email    string
 	PassHash []byte
-	IP       string
+	Secret   string
 	Token
-}
-
-type Token struct {
-	AccessToken  string
-	RefreshToken string
 }
