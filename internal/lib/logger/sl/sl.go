@@ -1,8 +1,16 @@
 package sl
 
-import "log/slog"
+import (
+	"log/slog"
+)
 
 func Err(err error) slog.Attr {
+	if err == nil {
+		return slog.Attr{
+			Key:   "error",
+			Value: slog.StringValue("nil error"),
+		}
+	}
 	return slog.Attr{
 		Key:   "error",
 		Value: slog.StringValue(err.Error()),

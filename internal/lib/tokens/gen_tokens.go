@@ -1,13 +1,17 @@
-package auth
+package tokens
 
 import (
 	"github.com/northwindman/testREST-autentification/internal/domain/models"
-	"github.com/northwindman/testREST-autentification/internal/lib/tokens/access"
 	"github.com/northwindman/testREST-autentification/internal/lib/tokens/jwt"
+	"github.com/northwindman/testREST-autentification/internal/lib/tokens/refresh"
 )
 
-func genTokens(ip string, email string, secret string, accessTokenLength int) (models.Token, error) {
-	rfToken, err := access.New(accessTokenLength)
+const (
+	AccessTokenLength = 30
+)
+
+func GenTokens(ip string, email string, secret string, accessTokenLength int) (models.Token, error) {
+	rfToken, err := refresh.New(accessTokenLength)
 	if err != nil {
 		return models.Token{}, err
 	}

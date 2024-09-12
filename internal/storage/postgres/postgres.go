@@ -83,17 +83,17 @@ func (s *Storage) SaveUser(ip string, email string, passHash []byte, secret stri
 }
 
 // GetUser returns the user's model for the operation by email and secret
-func (s *Storage) GetUser(email string, secret string) (models.User, error) {
+func (s *Storage) GetUser(email string) (models.User, error) {
 	const op = "storage.postgres.GetUser"
 
 	query := `
 		SELECT uid, ip, email, pass_hash, secret, refresh_token
 		FROM users
-		WHERE email = $1 AND secret = $2;
+		WHERE email = $1;
 	`
 
 	var user models.User
-	err := s.db.QueryRow(query, email, secret).Scan(&user.UID, &user.IP, &user.Email, &user.PassHash, &user.Secret)
+	err := s.db.QueryRow(query, email).Scan(&user.UID, &user.IP, &user.Email, &user.PassHash, &user.Secret, &user.RefreshToken)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			if pqErr.Code == "23505" {
@@ -124,7 +124,7 @@ func (s *Storage) UpdateUser(email string, ip string, secret string, refreshToke
 	`
 
 	var uid int64
-	err := s.db.QueryRow(query, ip, secret, refreshToken, email).Scan(uid)
+	err := s.db.QueryRow(query, ip, secret, refreshToken, email).Scan(&uid)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			if pqErr.Code == "23505" {

@@ -1,15 +1,14 @@
-package access
+package refresh
 
 import (
 	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // New create new token in format base64
 func New(length int) (string, error) {
-	const op = "lib.tokens.access.New"
+	const op = "lib.tokens.refresh.New"
 
 	tokenBytes := make([]byte, length)
 	_, err := rand.Read(tokenBytes)
@@ -17,12 +16,12 @@ func New(length int) (string, error) {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	return base64.StdEncoding.EncodeToString(tokenBytes), nil
+	return string(tokenBytes), nil
 }
 
 // HashString hashes the input string
 func HashString(incoming string) ([]byte, error) {
-	const op = "lib.tokens.access.HashString"
+	const op = "lib.tokens.refresh.HashString"
 
 	hashedString, err := bcrypt.GenerateFromPassword([]byte(incoming), bcrypt.DefaultCost)
 	if err != nil {

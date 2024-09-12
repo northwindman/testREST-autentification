@@ -1,15 +1,18 @@
 package auth
 
 import (
+	"encoding/base64"
 	"errors"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"github.com/northwindman/testREST-autentification/internal/lib/logger/sl"
 	"github.com/northwindman/testREST-autentification/internal/lib/random"
-	"github.com/northwindman/testREST-autentification/internal/lib/tokens/access"
+	"github.com/northwindman/testREST-autentification/internal/lib/tokens"
+	"github.com/northwindman/testREST-autentification/internal/lib/tokens/refresh"
 	"github.com/northwindman/testREST-autentification/internal/storage"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 
 	resp "github.com/northwindman/testREST-autentification/internal/lib/api/response"
@@ -26,12 +29,6 @@ type Response struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-// TODO: move to config if needed
-const (
-	secretLength      = 32
-	accessTokenLength = 30
-)
-
 type UserSaver interface {
 	SaveUser(ip string, email string, passHash []byte, secret string, refreshToken []byte) (int64, error)
 }
@@ -47,12 +44,12 @@ func New(log *slog.Logger, userSaver UserSaver) http.HandlerFunc {
 		var req Request
 		err := render.DecodeJSON(r.Body, &req)
 		if errors.Is(err, io.EOF) {
-			log.Error("request body is empty")
+			log.Error("request body is empty", sl.Err(err))
 			render.JSON(w, r, resp.Error("empty request"))
 			return
 		}
 		if err != nil {
-			log.Error("failed to parse request body")
+			log.Error("failed to parse request body", sl.Err(err))
 			render.JSON(w, r, resp.Error("failed to parse request"))
 			return
 		}
@@ -60,20 +57,32 @@ func New(log *slog.Logger, userSaver UserSaver) http.HandlerFunc {
 		log.Info("request body decoded")
 
 		if err = validator.New().Struct(req); err != nil {
-			validateErr := err.(validator.ValidationErrors)
-			log.Error("invalid request", sl.Err(err))
-			render.JSON(w, r, resp.ValidationError(validateErr))
+			var validateErr validator.ValidationErrors
+			if errors.As(err, &validateErr) {
+				log.Error("invalid request", sl.Err(err))
+				render.JSON(w, r, resp.ValidationError(validateErr))
+			} else {
+				log.Error("unexpected error", sl.Err(err))
+				render.JSON(w, r, resp.Error("internal server error"))
+			}
 			return
 		}
 
-		secret, err := random.NewSecret(secretLength)
+		secret, err := random.NewSecret(random.SecretLength)
 		if err != nil {
 			log.Error("failed to generate secret", sl.Err(err))
 			render.JSON(w, r, resp.Error("failed to generate secret"))
 			return
 		}
 
-		token, err := genTokens(r.RemoteAddr, req.Email, secret, accessTokenLength)
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			log.Error("failed to parse remote address", sl.Err(err))
+			render.JSON(w, r, resp.Error("failed to parse remote address"))
+			return
+		}
+
+		token, err := tokens.GenTokens(ip, req.Email, secret, tokens.AccessTokenLength)
 		if err != nil {
 			log.Error("failed to generate token", sl.Err(err))
 			render.JSON(w, r, resp.Error("failed to generate token"))
@@ -82,23 +91,25 @@ func New(log *slog.Logger, userSaver UserSaver) http.HandlerFunc {
 
 		log.Info("generated token")
 
-		tokenHash, err := access.HashString(token.RefreshToken)
+		tokenHash, err := refresh.HashString(token.RefreshToken)
 		if err != nil {
 			log.Error("failed to hash token", sl.Err(err))
 			render.JSON(w, r, resp.Error("failed to hash token"))
 			return
 		}
 
-		passHash, err := access.HashString(req.Password)
+		token.RefreshToken = base64.StdEncoding.EncodeToString([]byte(token.RefreshToken))
+
+		passHash, err := refresh.HashString(req.Password)
 		if err != nil {
 			log.Error("failed to hash password", sl.Err(err))
 			render.JSON(w, r, resp.Error("failed to hash password"))
 			return
 		}
 
-		id, err := userSaver.SaveUser(r.RemoteAddr, req.Email, passHash, secret, tokenHash)
+		id, err := userSaver.SaveUser(ip, req.Email, passHash, secret, tokenHash)
 		if errors.Is(err, storage.ErrAlreadyExist) {
-			log.Warn("user already exists")
+			log.Warn("user already exists", sl.Err(err))
 			render.JSON(w, r, resp.Error("user already exists"))
 			return
 		}
