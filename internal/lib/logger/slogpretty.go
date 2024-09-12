@@ -1,4 +1,4 @@
-package slogpretty
+package logger
 
 import (
 	"context"

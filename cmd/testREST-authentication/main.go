@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/northwindman/testREST-autentification/internal/config"
-	slogpretty "github.com/northwindman/testREST-autentification/pkg/logger"
+	slogpretty "github.com/northwindman/testREST-autentification/internal/lib/logger"
 	"log/slog"
 	"os"
 )
@@ -23,7 +23,10 @@ func main() {
 		slog.String("env", cfg.Env),
 		slog.String("version", "123"),
 	)
-	log.Debug("debug messages are enabled")
+
+	// TODO: init storage
+
+	// TODO: init app
 
 }
 

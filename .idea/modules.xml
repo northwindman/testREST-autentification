@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../TrainingCourceCH/.idea/TrainingCourceCH.iml" filepath="$PROJECT_DIR$/../TrainingCourceCH/.idea/TrainingCourceCH.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/testREST-autentification.iml" filepath="$PROJECT_DIR$/.idea/testREST-autentification.iml" />
     </modules>
   </component>
