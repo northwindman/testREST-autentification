@@ -10,7 +10,7 @@ var (
 )
 
 // New send email message
-func New(to, subject, body string) error {
+func New(to string, subject string, body string) error {
 	from := "testemail@example.com"
 	password := "testEmailPasswd"
 
