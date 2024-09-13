@@ -1,1 +1,2 @@
 ./config/local.yaml
+./internal/lib/tokens/gen_tokens_test.go

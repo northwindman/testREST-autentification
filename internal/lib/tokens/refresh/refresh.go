@@ -2,13 +2,21 @@ package refresh
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
-	"golang.org/x/crypto/bcrypt"
 )
 
-// New create new token in format base64
+var (
+	ErrInvalidTokenLength = errors.New("invalid token length")
+)
+
+// New create new token string
 func New(length int) (string, error) {
 	const op = "lib.tokens.refresh.New"
+
+	if length <= 0 {
+		return "", fmt.Errorf(op+": %w", ErrInvalidTokenLength)
+	}
 
 	tokenBytes := make([]byte, length)
 	_, err := rand.Read(tokenBytes)
@@ -17,22 +25,4 @@ func New(length int) (string, error) {
 	}
 
 	return string(tokenBytes), nil
-}
-
-// HashString hashes the input string
-func HashString(incoming string) ([]byte, error) {
-	const op = "lib.tokens.refresh.HashString"
-
-	hashedString, err := bcrypt.GenerateFromPassword([]byte(incoming), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return hashedString, nil
-}
-
-// VerifyString compares the received value with the hash
-func VerifyString(received string, hashed string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hashed), []byte(received))
-	return err == nil
 }

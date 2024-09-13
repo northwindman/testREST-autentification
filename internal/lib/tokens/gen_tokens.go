@@ -11,6 +11,8 @@ const (
 )
 
 func GenTokens(ip string, email string, secret string, accessTokenLength int) (models.Token, error) {
+	const op = "internal.lib.tokens.GenTokens"
+
 	rfToken, err := refresh.New(accessTokenLength)
 	if err != nil {
 		return models.Token{}, err

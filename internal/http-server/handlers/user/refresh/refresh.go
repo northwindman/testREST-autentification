@@ -1,18 +1,17 @@
 package refresh
 
 import (
-	"encoding/base64"
 	"errors"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"github.com/northwindman/testREST-autentification/internal/domain/models"
 	resp "github.com/northwindman/testREST-autentification/internal/lib/api/response"
+	"github.com/northwindman/testREST-autentification/internal/lib/format"
 	"github.com/northwindman/testREST-autentification/internal/lib/logger/sl"
 	"github.com/northwindman/testREST-autentification/internal/lib/notifications/email"
 	"github.com/northwindman/testREST-autentification/internal/lib/random"
 	"github.com/northwindman/testREST-autentification/internal/lib/tokens"
 	myjwt "github.com/northwindman/testREST-autentification/internal/lib/tokens/jwt"
-	"github.com/northwindman/testREST-autentification/internal/lib/tokens/refresh"
 	"github.com/northwindman/testREST-autentification/internal/storage"
 	"io"
 	"log/slog"
@@ -86,14 +85,14 @@ func New(log *slog.Logger, userProvider UserProvider) http.HandlerFunc {
 			return
 		}
 
-		decodedBytes, err := base64.StdEncoding.DecodeString(req.RefreshToken)
+		decodedBytes, err := format.FromBase64(req.RefreshToken)
 		if err != nil {
 			log.Error("failed to decode refresh token", sl.Err(err))
 			render.JSON(w, r, resp.Error("failed to decode refresh token"))
 			return
 		}
 
-		if ok := refresh.VerifyString(string(decodedBytes), originalUser.RefreshToken); !ok {
+		if ok := format.VerifyString(decodedBytes, originalUser.RefreshToken); !ok {
 			log.Error("invalid refresh token")
 			render.JSON(w, r, resp.Error("invalid credentials"))
 			return
@@ -129,14 +128,14 @@ func New(log *slog.Logger, userProvider UserProvider) http.HandlerFunc {
 			return
 		}
 
-		tokenHash, err := refresh.HashString(newTokens.RefreshToken)
+		tokenHash, err := format.HashString(newTokens.RefreshToken)
 		if err != nil {
 			log.Error("failed to hash token", sl.Err(err))
 			render.JSON(w, r, resp.Error("internal error"))
 			return
 		}
 
-		newTokens.RefreshToken = base64.StdEncoding.EncodeToString([]byte(newTokens.RefreshToken))
+		newTokens.RefreshToken = format.InBase64(newTokens.RefreshToken)
 
 		id, err := userProvider.UpdateUser(originalUser.Email, incomingUser.IP, newSecret, tokenHash)
 		if err != nil {

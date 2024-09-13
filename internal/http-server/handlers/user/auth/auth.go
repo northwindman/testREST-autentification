@@ -1,14 +1,13 @@
 package auth
 
 import (
-	"encoding/base64"
 	"errors"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
+	"github.com/northwindman/testREST-autentification/internal/lib/format"
 	"github.com/northwindman/testREST-autentification/internal/lib/logger/sl"
 	"github.com/northwindman/testREST-autentification/internal/lib/random"
 	"github.com/northwindman/testREST-autentification/internal/lib/tokens"
-	"github.com/northwindman/testREST-autentification/internal/lib/tokens/refresh"
 	"github.com/northwindman/testREST-autentification/internal/storage"
 	"io"
 	"log/slog"
@@ -91,16 +90,16 @@ func New(log *slog.Logger, userSaver UserSaver) http.HandlerFunc {
 
 		log.Info("generated token")
 
-		tokenHash, err := refresh.HashString(token.RefreshToken)
+		tokenHash, err := format.HashString(token.RefreshToken)
 		if err != nil {
 			log.Error("failed to hash token", sl.Err(err))
 			render.JSON(w, r, resp.Error("failed to hash token"))
 			return
 		}
 
-		token.RefreshToken = base64.StdEncoding.EncodeToString([]byte(token.RefreshToken))
+		token.RefreshToken = format.InBase64(token.RefreshToken)
 
-		passHash, err := refresh.HashString(req.Password)
+		passHash, err := format.HashString(req.Password)
 		if err != nil {
 			log.Error("failed to hash password", sl.Err(err))
 			render.JSON(w, r, resp.Error("failed to hash password"))

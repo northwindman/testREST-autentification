@@ -1,13 +1,10 @@
 package email
 
 import (
-	"errors"
 	"net/smtp"
 )
 
-var (
-	ResOk = errors.New("email send complete")
-)
+// TODO: move to config email addr
 
 // New send email message
 func New(to string, subject string, body string) error {
@@ -19,7 +16,7 @@ func New(to string, subject string, body string) error {
 	message := []byte("Subject: " + subject + "\r\n" + body)
 
 	auth := smtp.PlainAuth("", from, password, "smtp.example.com")
-	smtp.SendMail(smtpServer, auth, from, []string{to}, message)
+	_ = smtp.SendMail(smtpServer, auth, from, []string{to}, message)
 	// Handle error
 	/*if err != nil {
 		return err
