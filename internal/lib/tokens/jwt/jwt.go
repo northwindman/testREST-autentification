@@ -1,14 +1,24 @@
 package myjwt
 
 import (
+	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/northwindman/testREST-autentification/internal/domain/models"
 )
 
+var (
+	ErrEmptyClaims   = errors.New("empty claims")
+	ErrInvalidClaims = errors.New("invalid claims")
+)
+
 // NewToken creates a new JWT token for given user
 func New(ip string, email string, secret string) (string, error) {
 	const op = "lib.token.jwt.NewAccessToken"
+
+	if secret == "" {
+		return "", fmt.Errorf("empty secret")
+	}
 
 	token := jwt.New(jwt.SigningMethodHS512)
 
@@ -34,10 +44,19 @@ func GetClaims(tokenString string) (jwt.MapClaims, error) {
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		ip, ipOk := claims["ip"].(string)
+		if !ipOk || ip == "" {
+			return nil, fmt.Errorf("%s: %w", op, ErrEmptyClaims)
+		}
+		email, emailOk := claims["email"].(string)
+		if !emailOk || email == "" {
+			return nil, fmt.Errorf("%s: %w", op, ErrEmptyClaims)
+		}
+
 		return claims, nil
 	}
 
-	return nil, fmt.Errorf("%s: map.Claims is empty", op)
+	return nil, fmt.Errorf("%s: %w", op, ErrInvalidClaims)
 }
 
 // ParseToken check if token is valid and original
@@ -45,7 +64,6 @@ func ParseToken(tokenString string, secret string) (models.User, error) {
 	const op = "lib.token.jwt.Parse"
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-
 		if token.Method.Alg() != jwt.SigningMethodHS512.Alg() {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -59,10 +77,20 @@ func ParseToken(tokenString string, secret string) (models.User, error) {
 	var user models.User
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		user.Email = claims["email"].(string)
-		user.IP = claims["ip"].(string)
+		if ip, ipOk := claims["ip"].(string); ipOk {
+			user.IP = ip
+		} else {
+			return models.User{}, fmt.Errorf("%s: invalid or missing 'ip' claim", op)
+		}
+
+		if email, emailOk := claims["email"].(string); emailOk {
+			user.Email = email
+		} else {
+			return models.User{}, fmt.Errorf("%s: invalid or missing 'email' claim", op)
+		}
+
 	} else {
-		return models.User{}, fmt.Errorf("%s: %w", op, err)
+		return models.User{}, fmt.Errorf("%s: %w", op, ErrInvalidClaims)
 	}
 
 	return user, nil
